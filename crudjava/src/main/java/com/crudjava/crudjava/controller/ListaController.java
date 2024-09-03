@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,61 +16,53 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.crudjava.crudjava.model.Conteudo;
-import com.crudjava.crudjava.repository.ConteudoRepository;
+import com.crudjava.crudjava.service.ConteudoService;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 
 
 
-
+@Validated
 @RestController
 @RequestMapping("/api/lista")
 @AllArgsConstructor
 public class ListaController {
 
-    private final ConteudoRepository repository;
+    private final ConteudoService service;
 
     @GetMapping
     public List<Conteudo> listarConteudo(){
         System.out.println("listando!");
-        return repository.findAll();
+        return service.listarConteudo();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Conteudo> encontrarId(@PathVariable Long id) {
+    public ResponseEntity<Conteudo> encontrarId(@PathVariable @NotNull @Positive Long id) {
         System.out.println("buscando id: "+id);        
-        return repository.findById(id).map(object -> ResponseEntity.ok().body(object))
-        .orElse(ResponseEntity.notFound().build());
+        return service.encontrarId(id);        
     }    
 
     @PostMapping
     @ResponseStatus(code = HttpStatus.CREATED)
-    public Conteudo salvarConteudo(@RequestBody Conteudo conteudo){
+    public Conteudo salvarConteudo(@Valid @RequestBody Conteudo conteudo){
         System.out.println("salvou!");
-        return repository.save(conteudo);
+        return service.salvarConteudo(conteudo);
     }
 
     @PutMapping("/{id}")    
-    public ResponseEntity<Conteudo> atualizarConteudo(@PathVariable Long id, @RequestBody Conteudo entity) {
+    public ResponseEntity<Conteudo> atualizarConteudo(@PathVariable @NotNull @Positive Long id, 
+    @RequestBody @Valid Conteudo entity) {
         System.out.println("atualizou!");
-        return repository.findById(id).map(item -> {
-            item.setNome(entity.getNome());
-            item.setCpf(entity.getCpf());
-            item.setNumero(entity.getNumero());
-            Conteudo update = repository.save(item);
-            return ResponseEntity.ok().body(update);
-        })
-        .orElse(ResponseEntity.notFound().build());
+        return service.atualizarConteudo(id, entity);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(code = HttpStatus.NO_CONTENT)
-    public ResponseEntity excluirConteudo(@PathVariable Long id){
+    public ResponseEntity excluirConteudo(@PathVariable @NotNull @Positive Long id){
         System.out.println("exclui!");
-        return repository.findById(id).map(item -> {
-            repository.deleteById(id);
-            return ResponseEntity.noContent().build();
-        })
-        .orElse(ResponseEntity.notFound().build());
+        return service.excluirConteudo(id);
     }
 }
