@@ -22,10 +22,10 @@ public class Conteudo {
     private String nome;
 
     //000.000.000-00
-    @Column(length=14, nullable=false)
+    @Column(length=11, nullable=false)
     private String cpf;
 
     //+55(00)90000-0000
-    @Column(length=17, nullable=false)
+    @Column(length=13, nullable=false)
     private String numero;
 }
