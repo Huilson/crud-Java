@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,16 +49,27 @@ public class ListaController {
         return repository.save(conteudo);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id}")    
     public ResponseEntity<Conteudo> atualizarConteudo(@PathVariable Long id, @RequestBody Conteudo entity) {
-        return repository.findById(id).map(novo -> {
-            novo.setNome(entity.getNome());
-            novo.setCpf(entity.getCpf());
-            novo.setNumero(entity.getNumero());
-            Conteudo update = repository.save(novo);
+        System.out.println("atualizou!");
+        return repository.findById(id).map(item -> {
+            item.setNome(entity.getNome());
+            item.setCpf(entity.getCpf());
+            item.setNumero(entity.getNumero());
+            Conteudo update = repository.save(item);
             return ResponseEntity.ok().body(update);
         })
         .orElse(ResponseEntity.notFound().build());
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(code = HttpStatus.NO_CONTENT)
+    public ResponseEntity excluirConteudo(@PathVariable Long id){
+        System.out.println("exclui!");
+        return repository.findById(id).map(item -> {
+            repository.deleteById(id);
+            return ResponseEntity.noContent().build();
+        })
+        .orElse(ResponseEntity.notFound().build());
+    }
 }
