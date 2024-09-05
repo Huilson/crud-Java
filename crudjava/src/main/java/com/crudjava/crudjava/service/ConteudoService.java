@@ -1,62 +1,72 @@
 package com.crudjava.crudjava.service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
-import org.springframework.http.ResponseEntity;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 
+import com.crudjava.crudjava.dto.ConteudoDTO;
+import com.crudjava.crudjava.dto.ConteudoPage;
+import com.crudjava.crudjava.exception.ConteudoNotFoundException;
 import com.crudjava.crudjava.model.Conteudo;
 import com.crudjava.crudjava.repository.ConteudoRepository;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.AllArgsConstructor;
 
+@Validated
 @Service
 @AllArgsConstructor
 public class ConteudoService {
-    
-    private final ConteudoRepository repository;    
 
-    public List<Conteudo> listarConteudo() {
+    private final ConteudoRepository repository;
+    private final ModelMapper modelMapper;
+
+    public ConteudoPage listarConteudo(
+            @PositiveOrZero int pages,
+            @Positive @Max(10) int size) {
         System.out.println("listando!");
-        return repository.findAll();
+
+        Page<Conteudo> pg = repository.findAll(PageRequest.of(pages, size));
+        List<ConteudoDTO> dtos = pg.get().map(conteudo -> modelMapper.map(conteudo, ConteudoDTO.class))
+                .collect(Collectors.toList());
+        return new ConteudoPage(dtos, pg.getTotalElements(), pg.getTotalPages());
     }
 
-    public ResponseEntity<Conteudo> encontrarId(@PathVariable @NotNull @Positive Long id) {
+    public ConteudoDTO encontrarId(@PathVariable @NotNull @Positive Long id) {
         System.out.println("buscando id: " + id);
-        return repository.findById(id).map(object -> ResponseEntity.ok().body(object))
-                .orElse(ResponseEntity.notFound().build());
+        Conteudo conteudo = repository.findById(id).orElseThrow(() -> new ConteudoNotFoundException(id));
+        return modelMapper.map(conteudo, ConteudoDTO.class);
     }
 
-    public Conteudo salvarConteudo(@Valid @RequestBody Conteudo conteudo) {
+    public ConteudoDTO salvarConteudo(@Valid @NotNull ConteudoDTO conteudo) {
         System.out.println("salvou!");
-        return repository.save(conteudo);
+        repository.save(modelMapper.map(conteudo, Conteudo.class));
+        return conteudo;
     }
 
-    public ResponseEntity<Conteudo> atualizarConteudo(@PathVariable @NotNull @Positive Long id,
-            @RequestBody @Valid Conteudo entity) {
+    public ConteudoDTO conteudo(@PathVariable @NotNull @Positive Long id,
+            @NotNull @Valid ConteudoDTO conteudo) {
         System.out.println("atualizou!");
         return repository.findById(id).map(item -> {
-            item.setNome(entity.getNome());
-            item.setCpf(entity.getCpf());
-            item.setNumero(entity.getNumero());
-            Conteudo update = repository.save(item);
-            return ResponseEntity.ok().body(update);
-        })
-                .orElse(ResponseEntity.notFound().build());
+            item.setNome(conteudo.getNome());
+            item.setCpf(conteudo.getCpf());
+            item.setNumero(conteudo.getNumero());
+            return salvarConteudo(conteudo);
+        }).orElseThrow(() -> new ConteudoNotFoundException(id));
     }
 
-    public ResponseEntity excluirConteudo(@PathVariable @NotNull @Positive Long id) {
+    public void excluirConteudo(@PathVariable @NotNull @Positive Long id) {
         System.out.println("exclui!");
-        return repository.findById(id).map(item -> {
-            repository.deleteById(id);
-            return ResponseEntity.noContent().build();
-        })
-                .orElse(ResponseEntity.notFound().build());
+        repository.delete(repository.findById(id).orElseThrow(() -> new ConteudoNotFoundException(id)));
     }
-
 }
